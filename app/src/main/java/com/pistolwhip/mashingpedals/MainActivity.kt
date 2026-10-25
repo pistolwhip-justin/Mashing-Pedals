@@ -33,7 +33,7 @@ class MainActivity : Activity() {
         window.statusBarColor = bg
         window.navigationBarColor = bg
         window.decorView.systemUiVisibility = if (dark) 0 else View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
-        val scroll = ScrollView(this).apply { setBackgroundColor(bg) }
+        val scroll = ScrollView(this).apply { setBackgroundColor(bg); fitsSystemWindows = true }
         val page = LinearLayout(this).apply { orientation = 1; setPadding(dp(16), dp(14), dp(16), dp(22)) }
         scroll.addView(page)
         page.addView(txt("Mashing Pedals",28,fg,true))
@@ -80,9 +80,9 @@ class MainActivity : Activity() {
                 choice(content,"Theme",settings.theme,listOf("Dark" to DashboardSettings.DARK,"Light" to DashboardSettings.LIGHT)) { settings=settings.copy(theme=it); persist() }
                 choice(content,"Layout",settings.layout,listOf("Metric cards" to DashboardSettings.CARDS,"Compact cards" to DashboardSettings.COMPACT)) { settings=settings.copy(layout=it); persist() }
                 content.addView(txt("Visible metrics",15,fg,true))
-                check(content,"Speed",settings.showSpeed) { settings=settings.copy(showSpeed=it); persist() }
-                check(content,"Distance",settings.showDistance) { settings=settings.copy(showDistance=it); persist() }
-                check(content,"Elapsed time",settings.showElapsed) { settings=settings.copy(showElapsed=it); persist() }
+                check(content,"Speed",settings.showSpeed,fg) { settings=settings.copy(showSpeed=it); persist() }
+                check(content,"Distance",settings.showDistance,fg) { settings=settings.copy(showDistance=it); persist() }
+                check(content,"Elapsed time",settings.showElapsed,fg) { settings=settings.copy(showElapsed=it); persist() }
             }
         }
         page.addView(content,margin(10))
@@ -125,8 +125,8 @@ class MainActivity : Activity() {
             }
         },margin(3))
     }
-    private fun check(parent:LinearLayout,title:String,checked:Boolean,changed:(Boolean)->Unit) {
-        parent.addView(CheckBox(this).apply { text=title; isChecked=checked; setOnCheckedChangeListener { _,v->changed(v) } },ViewGroup.LayoutParams(-1,-2))
+    private fun check(parent:LinearLayout,title:String,checked:Boolean,color:Int,changed:(Boolean)->Unit) {
+        parent.addView(CheckBox(this).apply { text=title; setTextColor(color); isChecked=checked; setOnCheckedChangeListener { _,v->changed(v) } },ViewGroup.LayoutParams(-1,-2))
     }
     private fun placeholder(parent:LinearLayout,title:String,body:String,fg:Int,muted:Int) {
         parent.addView(txt(title,20,fg,true)); parent.addView(txt(body,14,muted,false))
