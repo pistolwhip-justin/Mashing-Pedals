@@ -327,3 +327,11 @@ These selections may be changed by the user later. A change that adds infrastruc
 - Every action in the trip overlay closes it. **Cancel** does not change active or saved data. **Save Trip** records the active trip before resetting trip metrics. **Delete Trip** resets only the active trip; prior saved trips and global totals remain.
 - Settings **Save** persists draft choices and closes; **Cancel** discards draft choices and closes.
 - The current 0.2.0 implementation is an initial device-test increment. GPS updates currently run while the Activity is alive; reliable screen-off tracking/foreground-service behavior remains unverified and must not be claimed complete. GPS measurements, Gear S3 BLE behavior, and trip accounting need on-device validation.
+
+
+## Patch 0.2.1 — settings continuity and color wheel
+
+- Restore the light-theme and compact-metric settings options that existed in the 0.1.1 baseline.
+- Restore the typed command test entry point in the Ride module.
+- Add a hue color wheel alongside the editable accent hex value and preset swatches.
+- Keep the trip-action and source-warning dismissal behavior from 0.2.0.
