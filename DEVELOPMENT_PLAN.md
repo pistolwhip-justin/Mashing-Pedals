@@ -317,3 +317,13 @@ These selections may be changed by the user later. A change that adds infrastruc
 - Workflow: https://github.com/pistolwhip-justin/Mashing-Pedals/actions/runs/40234083015
 - Release: https://github.com/pistolwhip-justin/Mashing-Pedals/releases/tag/v0.1.1
 - Phone installation and on-device layout/theme behavior: pending user test; not claimed as verified.
+
+
+## 5. Implementation note — 0.2.0 scope and source constraints (2026-10-25)
+
+- Heart rate is intended to come from the user's Gear S3 over Bluetooth. The first adapter scans for and consumes the standard Bluetooth LE Heart Rate Service (UUID 180D, measurement characteristic 2A37). This does not prove the Gear S3 advertises that service in its current mode; device validation is required. Do not imply successful Gear S3 integration until tested.
+- Cadence has no configured source yet and remains unavailable/null.
+- The missing-source warning includes **Dismiss** and a route to source settings.
+- Every action in the trip overlay closes it. **Cancel** does not change active or saved data. **Save Trip** records the active trip before resetting trip metrics. **Delete Trip** resets only the active trip; prior saved trips and global totals remain.
+- Settings **Save** persists draft choices and closes; **Cancel** discards draft choices and closes.
+- The current 0.2.0 implementation is an initial device-test increment. GPS updates currently run while the Activity is alive; reliable screen-off tracking/foreground-service behavior remains unverified and must not be claimed complete. GPS measurements, Gear S3 BLE behavior, and trip accounting need on-device validation.
