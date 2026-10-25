@@ -1,6 +1,6 @@
 # Mashing Pedals — Development Plan
 
-**Status:** Phase 1 implementation and UI refinement are in progress; device acceptance testing remains pending  
+**Status:** Phase 1 implementation and UI refinement are released for device acceptance testing  
 **Plan baseline:** 2026-10-25  
 **Repository:** https://github.com/pistolwhip-justin/Mashing-Pedals  
 **Global development standard:** [Development Protocols](https://github.com/pistolwhip-justin/development-protocols-n-assets/blob/main/DEVELOPMENT_PROTOCOLS.md) (v1.1.1 at plan approval)
@@ -278,3 +278,13 @@ These selections may be changed by the user later. A change that adds infrastruc
 **Release:** v0.1.1, APK asset Mashing-Pedals-0.1.1.apk, with a dedicated version-matched GitHub Actions workflow. This is a UI/layout refinement only; live GPS, ride execution, wake phrase, and Maps/Music/Health integrations remain out of scope for Phase 1.
 
 **Device acceptance:** Install the new APK on the Galaxy A15 5G; confirm landscape-only behavior, the left 2/3 and right 1/3 split, bottom horizontal module selector, AMOLED-black appearance, module switching, and settings persistence. The previous release uses a different debug-signing key, so Android may require uninstalling it first; uninstalling clears app data.
+
+
+### 0.1.1 verification record
+
+- Automated tests: passed in GitHub Actions.
+- APK assembly: passed.
+- GitHub Release: v0.1.1 published; the Mashing-Pedals-0.1.1.apk asset is uploaded and verified.
+- Workflow: https://github.com/pistolwhip-justin/Mashing-Pedals/actions/runs/40234083015
+- Release: https://github.com/pistolwhip-justin/Mashing-Pedals/releases/tag/v0.1.1
+- Phone installation and on-device layout/theme behavior: pending user test; not claimed as verified.
