@@ -1,5 +1,4 @@
 package com.pistolwhip.mashingpedals
-import android.app.Application
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
