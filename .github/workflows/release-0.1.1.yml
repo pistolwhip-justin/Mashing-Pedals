@@ -18,8 +18,8 @@ jobs:
       - name: Check for existing immutable release
         id: existing
         env:
-          GH_TOKEN: \${{ github.token }}
-          GH_REPO: \${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         shell: bash
         run: |
           set -euo pipefail
@@ -76,6 +76,6 @@ jobs:
       - name: Publish immutable GitHub Release
         if: steps.existing.outputs.release_exists != 'true'
         env:
-          GH_TOKEN: \${{ github.token }}
-          GH_REPO: \${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: gh release create v0.1.1 release/Mashing-Pedals-0.1.1.apk --repo "$GH_REPO" --title "Mashing Pedals 0.1.1" --notes-file release-notes.md
