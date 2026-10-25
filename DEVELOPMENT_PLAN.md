@@ -253,3 +253,14 @@ The initial-project defaults in the shared development prompt are recorded as fo
 | Separate security / privacy document | NO | Apply Android security and privacy requirements; do not add a standalone security document unless a later review shows it is necessary and scope is agreed. |
 
 These selections may be changed by the user later. A change that adds infrastructure must be recorded before implementing it.
+
+
+## 10. Phase 1 execution record
+
+**Target release:** `0.1.0`
+
+- **Scope implemented in source:** dashboard shell, persistent placeholder metric panel, app-owned module navigation, saved theme/layout/metric visibility settings, and typed command entry through the shared command dispatcher.
+- **Not included:** live GPS, real ride-state management, always-listening wake phrase, live maps/music/health integrations, screen wake-up, or production signing.
+- **Build/test gate:** GitHub Actions runs unit tests and assembles the debug APK from committed source using the repository Gradle wrapper. The release workflow publishes `Mashing-Pedals-0.1.0.apk` to immutable release `v0.1.0` only if the tag does not already exist.
+- **Device acceptance checks:** install on Samsung Galaxy A15 5G; confirm module navigation; change theme/layout/metric visibility; force-close/reopen and confirm settings persist; verify placeholders are not presented as real data; try module commands and an unsupported ride command; report UI/UX issues as testing feedback.
+- **Verification status:** source is committed. Automated tests, CI build, release publication, device installation, and device behavior are tracked separately and remain pending until verified.
