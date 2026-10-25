@@ -18,3 +18,5 @@ Phase 1 implements the native app shell, persistent cycling-computer placeholder
 - [Global development protocols](https://github.com/pistolwhip-justin/development-protocols-n-assets/blob/main/DEVELOPMENT_PROTOCOLS.md)
 
 **Current status:** Phase 1 automated tests passed, the debug APK built successfully in GitHub Actions, and release `v0.1.0` is published. Physical-device installation and behavior testing remain pending.
+
+**Testing note:** This is a CI debug-signed APK. Stable signing across phase releases is not configured yet, so later APKs may require uninstalling the prior version before installation; uninstalling removes app data.
