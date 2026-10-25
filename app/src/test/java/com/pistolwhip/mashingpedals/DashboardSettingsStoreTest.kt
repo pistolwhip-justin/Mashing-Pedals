@@ -8,7 +8,7 @@ import org.robolectric.RuntimeEnvironment
 @RunWith(RobolectricTestRunner::class)
 class DashboardSettingsStoreTest {
     @Test fun settingsPersistAcrossStoreInstances() {
-        val prefs=RuntimeEnvironment.getApplication<Application>().getSharedPreferences("settings-test",0)
+        val prefs=RuntimeEnvironment.getApplication().getSharedPreferences("settings-test",0)
         prefs.edit().clear().commit()
         val expected=DashboardSettings(DashboardSettings.LIGHT,DashboardSettings.COMPACT,false,true,false)
         DashboardSettingsStore(prefs).save(expected)
