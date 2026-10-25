@@ -234,3 +234,22 @@ These are investigation items, not confirmed blockers or implemented features:
 - **MP-DEC-004 — Initial device/network constraint:** The initial target is the Samsung Galaxy A15 5G; the phone is Wi-Fi-only, so offline-capable core behavior is prioritized where feasible.
 
 These decisions reflect the approved plan as of 2026-10-25. Future changes should update the current requirements and preserve superseded decisions rather than silently erasing them.
+
+
+## 9. Optional project infrastructure
+
+The initial-project defaults in the shared development prompt are recorded as follows. These are infrastructure choices, not additional product features.
+
+| Infrastructure | Selection | Application to this repository |
+|---|---|---|
+| GitHub Projects / ProjectV2 board | NO | Do not create a project board unless requested later. |
+| Formal resource planning | NO | Do not add a separate resource-planning document unless requested or needed by a later approved decision. |
+| Formal knowledge management / AI-chat archive | NO | Do not create a private conversation archive; keep the product decisions required for development in this plan. |
+| Formal phase-based development plan | YES | This document defines phases and readiness gates. |
+| Formal research / data provenance system | NO | Research map, health, and SDK choices as required, but do not create a separate provenance subsystem unless approved. |
+| Separate formal testing / validation plan | NO | Testing and acceptance criteria are maintained in this development plan and phase records unless later requested. |
+| Deployment / release management | YES | Follow the explicit per-version GitHub Actions and GitHub Release process in Section 5. |
+| Public documentation / knowledge vault | NO | Keep project documentation in this repository; no separate public documentation site is planned. |
+| Separate security / privacy document | NO | Apply Android security and privacy requirements; do not add a standalone security document unless a later review shows it is necessary and scope is agreed. |
+
+These selections may be changed by the user later. A change that adds infrastructure must be recorded before implementing it.
