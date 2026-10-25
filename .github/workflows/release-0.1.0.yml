@@ -1,0 +1,78 @@
+name: Release 0.1.0
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: mashing-pedals-release-0.1.0
+  cancel-in-progress: false
+jobs:
+  build-test-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out committed source
+        uses: actions/checkout@v4
+      - name: Check for existing immutable release
+        id: existing
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="v0.1.0"
+          asset="Mashing-Pedals-0.1.0.apk"
+          response="$(mktemp)"
+          status="$(curl -sS -o "$response" -w '%{http_code}' -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$GH_REPO/releases/tags/$tag")"
+          if [[ "$status" == "404" ]]; then echo "release_exists=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          if [[ "$status" != "200" ]]; then cat "$response"; echo "Release lookup failed ($status); refusing to assume absent." >&2; exit 1; fi
+          if jq -e --arg asset "$asset" '.assets | any(.name == $asset)' "$response" >/dev/null; then
+            echo "Release $tag already contains $asset; no-op."
+            echo "release_exists=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "Release $tag exists without expected APK; refusing to modify it." >&2
+          exit 1
+      - name: Set up JDK 17
+        if: steps.existing.outputs.release_exists != 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Set up Android SDK
+        if: steps.existing.outputs.release_exists != 'true'
+        uses: android-actions/setup-android@v3
+      - name: Install Android SDK components
+        if: steps.existing.outputs.release_exists != 'true'
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0" "platform-tools"
+      - name: Run automated tests
+        if: steps.existing.outputs.release_exists != 'true'
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon testDebugUnitTest
+      - name: Assemble debug APK
+        if: steps.existing.outputs.release_exists != 'true'
+        run: ./gradlew --no-daemon assembleDebug
+      - name: Prepare release asset and notes
+        if: steps.existing.outputs.release_exists != 'true'
+        run: |
+          mkdir -p release
+          cp app/build/outputs/apk/debug/app-debug.apk release/Mashing-Pedals-0.1.0.apk
+          cat > release-notes.md <<'EOF'
+          # Mashing Pedals 0.1.0
+          - Native Android dashboard foundation for Samsung Galaxy A15 5G.
+          - Persistent cycling-computer placeholders with saved theme, layout, and metric visibility.
+          - In-app Dashboard, Maps, Music, Health, and Settings navigation.
+          - Typed command entry for module routing and command parsing.
+          **Installation:** debug-signed sideload APK for testing; not production/Play Store signed.
+          **Limitations:** metrics are placeholders; GPS, wake phrase, ride-state execution, live maps, music, and health integrations are not implemented. Device installation and behavior testing remain required.
+          EOF
+      - name: Publish immutable GitHub Release
+        if: steps.existing.outputs.release_exists != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh release create v0.1.0 release/Mashing-Pedals-0.1.0.apk --repo "$GH_REPO" --title "Mashing Pedals 0.1.0" --notes-file release-notes.md
