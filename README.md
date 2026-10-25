@@ -20,6 +20,6 @@ Phase 1 implements the native app shell, persistent cycling-computer placeholder
 - [Approved development plan](DEVELOPMENT_PLAN.md)
 - [Global development protocols](https://github.com/pistolwhip-justin/development-protocols-n-assets/blob/main/DEVELOPMENT_PROTOCOLS.md)
 
-**Current status:** The landscape/AMOLED UI revision is version 0.1.1. Automated tests, APK build, release publication, phone installation, and device behavior are tracked separately; phone testing remains pending.
+**Current status:** Version 0.1.1 automated tests passed, the debug APK assembled successfully, and the APK asset is published in GitHub Release v0.1.1. Installation and device behavior remain unverified pending user testing.
 
 **Testing note:** APKs are CI debug-signed. Stable signing across releases is not configured, so Android may require uninstalling a previous build before installing this one. Uninstalling removes local app data.
