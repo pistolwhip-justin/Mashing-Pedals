@@ -42,12 +42,11 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - name: Set up Android SDK
-        if: steps.existing.outputs.release_exists != 'true'
-        uses: android-actions/setup-android@v3
       - name: Install Android SDK components
         if: steps.existing.outputs.release_exists != 'true'
-        run: sdkmanager "platforms;android-36" "build-tools;36.0.0" "platform-tools"
+        run: |
+          yes | sdkmanager --licenses >/dev/null
+          sdkmanager --install "platforms;android-36" "build-tools;36.0.0" "platform-tools"
       - name: Run automated tests
         if: steps.existing.outputs.release_exists != 'true'
         run: |
