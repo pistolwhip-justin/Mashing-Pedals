@@ -1,349 +1,82 @@
 package com.pistolwhip.mashingpedals
-
+import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.AlertDialog
+import android.bluetooth.*
+import android.bluetooth.le.*
+import android.content.Context
+import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.location.Location
+import android.location.LocationListener
+import android.location.LocationManager
+import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.Gravity
 import android.view.View
-import android.view.ViewGroup
 import android.widget.*
+import java.util.UUID
+import kotlin.math.max
 
-class MainActivity : Activity() {
-    private lateinit var store: DashboardSettingsStore
-    private var settings = DashboardSettings()
-    private var module = "Dashboard"
-    private val modules = listOf("Dashboard", "Maps", "Music", "Health", "Settings")
-
-    private val amoledBlack = Color.BLACK
-    private val darkTile = Color.rgb(12, 12, 12)
-    private val darkBorder = Color.rgb(38, 38, 38)
-    private val accent = Color.rgb(80, 210, 170)
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-        store = DashboardSettingsStore(getSharedPreferences("dashboard", MODE_PRIVATE))
-        settings = store.load()
-        render()
-    }
-
-    private fun render() {
-        val dark = settings.theme == DashboardSettings.DARK
-        val bg = if (dark) amoledBlack else Color.rgb(245, 247, 250)
-        val surface = if (dark) amoledBlack else Color.WHITE
-        val tileColor = if (dark) darkTile else Color.rgb(235, 241, 247)
-        val border = if (dark) darkBorder else Color.rgb(220, 226, 233)
-        val fg = if (dark) Color.rgb(245, 245, 245) else Color.rgb(27, 39, 52)
-        val muted = if (dark) Color.rgb(165, 165, 165) else Color.rgb(90, 105, 120)
-
-        window.statusBarColor = bg
-        window.navigationBarColor = bg
-        window.decorView.systemUiVisibility = if (dark) 0 else
-            View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
-
-        val root = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            setPadding(dp(10), dp(8), dp(10), dp(8))
-            setBackgroundColor(bg)
-        }
-
-        // The module workspace takes two thirds; the ride computer stays in the right third.
-        val workspace = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(4), dp(2), dp(8), dp(2))
-        }
-        val rideComputer = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(10), dp(10), dp(10), dp(10))
-            background = rounded(surface, 16, border)
-        }
-        root.addView(workspace, LinearLayout.LayoutParams(0, -1, 2f))
-        root.addView(rideComputer, LinearLayout.LayoutParams(0, -1, 1f).apply {
-            leftMargin = dp(4)
-        })
-
-        val header = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-        }
-        val heading = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        heading.addView(txt("Mashing Pedals", 22, fg, true))
-        heading.addView(txt("Cycling dashboard · Phase 1", 12, muted, false))
-        header.addView(heading, LinearLayout.LayoutParams(0, -2, 1f))
-        header.addView(TextView(this).apply {
-            text = "Test command"
-            textSize = 12f
-            gravity = Gravity.CENTER
-            setTextColor(if (dark) accent else Color.rgb(0, 120, 90))
-            setPadding(dp(10), dp(8), dp(10), dp(8))
-            background = rounded(tileColor, 10, border)
-            contentDescription = "Test a typed voice command"
-            setOnClickListener { commandDialog() }
-        }, LinearLayout.LayoutParams(-2, dp(42)))
-        workspace.addView(header, LinearLayout.LayoutParams(-1, -2).apply {
-            bottomMargin = dp(8)
-        })
-
-        // The module body scrolls independently above the fixed bottom selector.
-        val scroll = ScrollView(this).apply {
-            isFillViewport = true
-            overScrollMode = View.OVER_SCROLL_IF_CONTENT_SCROLLS
-            setBackgroundColor(bg)
-        }
-        val content = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(2), dp(2), dp(8), dp(8))
-        }
-        scroll.addView(content)
-        workspace.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
-        renderModule(content, dark, fg, muted, tileColor, border)
-
-        // All module buttons stay in one horizontal row at the bottom of the left workspace.
-        val nav = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-        }
-        modules.forEach { name ->
-            val selected = module == name
-            val item = TextView(this).apply {
-                text = if (name == "Dashboard") "Ride" else name
-                textSize = 11f
-                gravity = Gravity.CENTER
-                maxLines = 1
-                setTextColor(if (selected) (if (dark) Color.BLACK else Color.WHITE) else fg)
-                background = rounded(
-                    if (selected) (if (dark) accent else Color.rgb(25, 115, 90)) else tileColor,
-                    10, border
-                )
-                setPadding(dp(2), dp(4), dp(2), dp(4))
-                contentDescription = "Open $name module"
-                isClickable = true
-                isFocusable = true
-                setOnClickListener { module = name; render() }
-            }
-            nav.addView(item, LinearLayout.LayoutParams(0, dp(44), 1f).apply {
-                if (nav.childCount > 0) leftMargin = dp(4)
-            })
-        }
-        workspace.addView(nav, LinearLayout.LayoutParams(-1, -2).apply {
-            topMargin = dp(8)
-        })
-
-        // Persistent ride computer panel, always on the right regardless of selected module.
-        rideComputer.addView(txt("RIDE COMPUTER", 13, fg, true))
-        rideComputer.addView(txt("Preview only · live tracking in Phase 2", 11, muted, false).apply {
-            setPadding(0, dp(3), 0, dp(8))
-        })
-        val visibleMetrics = listOf(
-            Triple(settings.showSpeed, "SPEED", "—"),
-            Triple(settings.showDistance, "DISTANCE", "—"),
-            Triple(settings.showElapsed, "ELAPSED TIME", "—")
-        ).filter { it.first }
-        if (visibleMetrics.isEmpty()) {
-            rideComputer.addView(txt("All metrics hidden. Enable them in Settings.", 13, muted, false))
-        } else {
-            visibleMetrics.forEachIndexed { index, metric ->
-                val tile = box(tileColor, 12, border).apply {
-                    gravity = Gravity.CENTER_VERTICAL
-                    setPadding(dp(12), dp(7), dp(12), dp(7))
-                }
-                tile.addView(txt(metric.second, 10, muted, true))
-                tile.addView(txt(metric.third, if (settings.layout == DashboardSettings.COMPACT) 23 else 30, fg, true)
-                    .apply { setPadding(0, dp(1), 0, 0) })
-                rideComputer.addView(tile, LinearLayout.LayoutParams(-1, 0, 1f).apply {
-                    if (index > 0) topMargin = dp(7)
-                })
-            }
-        }
-        setContentView(root)
-    }
-
-    private fun renderModule(
-        parent: LinearLayout,
-        dark: Boolean,
-        fg: Int,
-        muted: Int,
-        tileColor: Int,
-        border: Int
-    ) {
-        val panel = box(if (dark) amoledBlack else Color.WHITE, 14, border)
-        when (module) {
-            "Dashboard" -> {
-                panel.addView(txt("Dashboard", 20, fg, true))
-                panel.addView(txt(
-                    "Your ride computer stays visible on the right while you switch modules here.",
-                    14, muted, false
-                ).apply { setPadding(0, dp(4), 0, dp(10)) })
-                panel.addView(txt(
-                    "Phase 1 preview: values are placeholders. GPS tracking and ride controls arrive in Phase 2.",
-                    13, muted, false
-                ))
-            }
-            "Maps" -> placeholder(panel, "Maps",
-                "Map display, current position, and navigation are planned for Phase 4.", fg, muted)
-            "Music" -> placeholder(panel, "Music",
-                "Player status and supported media controls are planned for Phase 5.", fg, muted)
-            "Health" -> placeholder(panel, "Health",
-                "Live health data is planned for Phase 6, subject to verified device/API support.", fg, muted)
-            "Settings" -> {
-                panel.addView(txt("Settings", 20, fg, true))
-                panel.addView(txt("Changes save automatically.", 12, muted, false).apply {
-                    setPadding(0, dp(2), 0, dp(8))
-                })
-                choice(panel, "Theme", settings.theme,
-                    listOf("AMOLED black" to DashboardSettings.DARK, "Light" to DashboardSettings.LIGHT)) {
-                    settings = settings.copy(theme = it); persist()
-                }
-                choice(panel, "Layout", settings.layout,
-                    listOf("Metric cards" to DashboardSettings.CARDS, "Compact cards" to DashboardSettings.COMPACT)) {
-                    settings = settings.copy(layout = it); persist()
-                }
-                panel.addView(txt("Visible ride-computer metrics", 14, fg, true).apply {
-                    setPadding(0, dp(6), 0, dp(2))
-                })
-                check(panel, "Speed", settings.showSpeed, fg, dark) {
-                    settings = settings.copy(showSpeed = it); persist()
-                }
-                check(panel, "Distance", settings.showDistance, fg, dark) {
-                    settings = settings.copy(showDistance = it); persist()
-                }
-                check(panel, "Elapsed time", settings.showElapsed, fg, dark) {
-                    settings = settings.copy(showElapsed = it); persist()
-                }
-            }
-        }
-        parent.addView(panel, LinearLayout.LayoutParams(-1, -2))
-    }
-
-    private fun commandDialog() {
-        val input = EditText(this).apply {
-            hint = "Try “open maps” or “start ride”"
-            setSingleLine(true)
-        }
-        AlertDialog.Builder(this, dialogTheme())
-            .setTitle("Test command")
-            .setMessage("Typed input only; this does not use the microphone.")
-            .setView(input)
-            .setNegativeButton("Cancel", null)
-            .setPositiveButton("Run") { _, _ -> handle(CommandDispatcher.parse(input.text.toString())) }
-            .show()
-    }
-
-    private fun dialogTheme() = if (settings.theme == DashboardSettings.DARK) {
-        android.R.style.Theme_Material_Dialog_Alert
-    } else {
-        android.R.style.Theme_Material_Light_Dialog_Alert
-    }
-
-    private fun handle(c: AppCommand) {
-        val dest = when (c) {
-            AppCommand.DASHBOARD -> "Dashboard"
-            AppCommand.MAPS -> "Maps"
-            AppCommand.MUSIC -> "Music"
-            AppCommand.HEALTH -> "Health"
-            AppCommand.SETTINGS -> "Settings"
-            else -> null
-        }
-        if (dest != null) {
-            module = dest
-            render()
-            Toast.makeText(this, "Opened $dest", Toast.LENGTH_SHORT).show()
-            return
-        }
-        val msg = when (c) {
-            AppCommand.START_RIDE, AppCommand.PAUSE_RIDE, AppCommand.RESUME_RIDE,
-            AppCommand.END_RIDE, AppCommand.RESET_RIDE ->
-                "Ride command recognized; execution arrives in Phase 2."
-            AppCommand.PLAY, AppCommand.PAUSE_MEDIA, AppCommand.STOP_MEDIA,
-            AppCommand.NEXT, AppCommand.PREVIOUS ->
-                "Media command recognized; integration arrives in Phase 5."
-            else -> "Not recognized. Try “open maps”, “music”, or “settings”."
-        }
-        Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
-    }
-
-    private fun choice(
-        parent: LinearLayout,
-        title: String,
-        selected: String,
-        options: List<Pair<String, String>>,
-        changed: (String) -> Unit
-    ) {
-        parent.addView(TextView(this).apply {
-            text = "$title: " + (options.firstOrNull { it.second == selected }?.first ?: options.first().first)
-            textSize = 14f
-            gravity = Gravity.CENTER_VERTICAL
-            setTextColor(if (settings.theme == DashboardSettings.DARK) Color.WHITE else Color.rgb(27, 39, 52))
-            setPadding(dp(12), dp(10), dp(12), dp(10))
-            background = rounded(
-                if (settings.theme == DashboardSettings.DARK) darkTile else Color.rgb(245, 247, 250),
-                10, if (settings.theme == DashboardSettings.DARK) darkBorder else Color.rgb(220, 226, 233)
-            )
-            isClickable = true
-            isFocusable = true
-            setOnClickListener {
-                AlertDialog.Builder(this@MainActivity, dialogTheme()).setTitle(title)
-                    .setSingleChoiceItems(options.map { it.first }.toTypedArray(),
-                        options.indexOfFirst { it.second == selected }) { dialog, index ->
-                        dialog.dismiss()
-                        changed(options[index].second)
-                    }
-                    .setNegativeButton("Cancel", null)
-                    .show()
-            }
-        }, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(5) })
-    }
-
-    private fun check(
-        parent: LinearLayout,
-        title: String,
-        checked: Boolean,
-        color: Int,
-        dark: Boolean,
-        changed: (Boolean) -> Unit
-    ) {
-        parent.addView(CheckBox(this).apply {
-            text = title
-            setTextColor(color)
-            buttonTintList = android.content.res.ColorStateList.valueOf(
-                if (dark) accent else Color.rgb(25, 115, 90)
-            )
-            isChecked = checked
-            setOnCheckedChangeListener { _, value -> changed(value) }
-        }, ViewGroup.LayoutParams(-1, -2))
-    }
-
-    private fun placeholder(parent: LinearLayout, title: String, body: String, fg: Int, muted: Int) {
-        parent.addView(txt(title, 20, fg, true))
-        parent.addView(txt(body, 14, muted, false).apply { setPadding(0, dp(4), 0, 0) })
-    }
-
-    private fun persist() {
-        store.save(settings)
-        render()
-    }
-
-    private fun box(color: Int, radius: Int, border: Int) = LinearLayout(this).apply {
-        orientation = LinearLayout.VERTICAL
-        setPadding(dp(12), dp(12), dp(12), dp(12))
-        background = rounded(color, radius, border)
-    }
-
-    private fun rounded(color: Int, radius: Int, border: Int) = GradientDrawable().apply {
-        setColor(color)
-        cornerRadius = dp(radius).toFloat()
-        setStroke(dp(1), border)
-    }
-
-    private fun txt(s: String, size: Int, color: Int, bold: Boolean) = TextView(this).apply {
-        text = s
-        textSize = size.toFloat()
-        setTextColor(color)
-        if (bold) setTypeface(typeface, Typeface.BOLD)
-    }
-
-    private fun dp(n: Int) = (n * resources.displayMetrics.density).toInt()
+class MainActivity:Activity(){
+ private val p by lazy{getSharedPreferences("mp",MODE_PRIVATE)}
+ private lateinit var db:TripDatabase
+ private var module="Ride";private var dark=true;private var accent=Color.rgb(0,230,180)
+ private val v=mutableMapOf<String,Boolean>()
+ private var speed:Double?=null;private var distance=0.0;private var secs=0L;private var maxSpeed=0.0;private var speedSum=0.0;private var speedN=0L
+ private var heart:Int?=null;private var maxHeart:Int?=null;private var heartSum=0L;private var heartN=0L
+ private var cadence:Int?=null;private var maxCadence:Int?=null;private var cadenceSum=0L;private var cadenceN=0L
+ private var gd=0.0;private var gs=0L;private var gmax=0.0;private var gsum=0.0;private var gn=0L;private var ghmax:Int?=null;private var ghs=0L;private var ghn=0L
+ private var prev:Location?=null;private var tickAt=0L;private var gatt:BluetoothGatt?=null
+ private val h=Handler(Looper.getMainLooper())
+ private val svc=UUID.fromString("0000180d-0000-1000-8000-00805f9b34fb");private val hrid=UUID.fromString("00002a37-0000-1000-8000-00805f9b34fb");private val cccd=UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
+ private val keys=listOf("section.speed","section.trip","section.heart","section.cadence","speed.current","speed.max","speed.avg","trip.time","trip.distance","heart.current","heart.max","heart.avg","cadence.current","cadence.max","cadence.avg")
+ private val clock=object:Runnable{override fun run(){val now=System.currentTimeMillis();if((speed?:0.0)>0&&tickAt>0){val d=((now-tickAt)/1000).coerceIn(0,3);secs+=d;gs+=d};tickAt=now;saveData();render();h.postDelayed(this,1000)}}
+ override fun onCreate(b:Bundle?){super.onCreate(b);db=TripDatabase(this);dark=p.getBoolean("dark",true);accent=p.getInt("accent",Color.rgb(0,230,180));keys.forEach{v[it]=p.getBoolean(it,true)};loadData();render();h.post(clock);if(!p.getBoolean("warnDismiss",false))h.postDelayed({warning()},350);requestGps()}
+ override fun onDestroy(){h.removeCallbacks(clock);try{gatt?.close()}catch(_:Exception){};super.onDestroy()}
+ private fun loadData(){distance=p.getFloat("d",0f).toDouble();secs=p.getLong("s",0);maxSpeed=p.getFloat("ms",0f).toDouble();speedSum=p.getFloat("ss",0f).toDouble();speedN=p.getLong("sn",0);heart=p.getInt("hr",-1).takeIf{it>=0};maxHeart=p.getInt("hm",-1).takeIf{it>=0};heartSum=p.getLong("hs",0);heartN=p.getLong("hn",0);cadence=p.getInt("ca",-1).takeIf{it>=0};maxCadence=p.getInt("cm",-1).takeIf{it>=0};cadenceSum=p.getLong("cs",0);cadenceN=p.getLong("cn",0);gd=p.getFloat("gd",0f).toDouble();gs=p.getLong("gs",0);gmax=p.getFloat("gm",0f).toDouble();gsum=p.getFloat("gss",0f).toDouble();gn=p.getLong("gn",0);ghmax=p.getInt("ghm",-1).takeIf{it>=0};ghs=p.getLong("ghs",0);ghn=p.getLong("ghn",0)}
+ private fun saveData(){p.edit().putFloat("d",distance.toFloat()).putLong("s",secs).putFloat("ms",maxSpeed.toFloat()).putFloat("ss",speedSum.toFloat()).putLong("sn",speedN).putInt("hr",heart?:-1).putInt("hm",maxHeart?:-1).putLong("hs",heartSum).putLong("hn",heartN).putInt("ca",cadence?:-1).putInt("cm",maxCadence?:-1).putLong("cs",cadenceSum).putLong("cn",cadenceN).putFloat("gd",gd.toFloat()).putLong("gs",gs).putFloat("gm",gmax.toFloat()).putFloat("gss",gsum.toFloat()).putLong("gn",gn).putInt("ghm",ghmax?:-1).putLong("ghs",ghs).putLong("ghn",ghn).apply()}
+ private fun requestGps(){if(checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)!=PackageManager.PERMISSION_GRANTED)requestPermissions(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION),20) else gps()}
+ @SuppressLint("MissingPermission") private fun gps(){if(checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)!=PackageManager.PERMISSION_GRANTED&&checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION)!=PackageManager.PERMISSION_GRANTED)return;try{val lm=getSystemService(Context.LOCATION_SERVICE) as LocationManager;lm.requestLocationUpdates(LocationManager.GPS_PROVIDER,1000,1f,object:LocationListener{override fun onLocationChanged(l:Location){val old=prev;if(old!=null){val km=old.distanceTo(l).toDouble()/1000;val k=if(l.hasSpeed())l.speed*3.6 else km*3600;if(k in 0.0..150.0){speed=k;if(k>0){distance+=km;gd+=km;maxSpeed=max(maxSpeed,k);gmax=max(gmax,k);speedSum+=k;speedN++;gsum+=k;gn++};render()}};prev=l};override fun onProviderDisabled(provider:String){speed=null;render()};override fun onProviderEnabled(provider:String){};@Deprecated("Deprecated in Java") override fun onStatusChanged(provider:String?,status:Int,extras:Bundle?) {}})}catch(_:Exception){speed=null}}
+ private fun warning(){AlertDialog.Builder(this,dt()).setTitle("Data source warning").setMessage("Heart rate: connect Gear S3 if it exposes the standard Bluetooth LE Heart Rate Service.\n\nCadence: no source configured. It remains unavailable, not zero.").setPositiveButton("Source settings"){_,_->settings()}.setNegativeButton("Dismiss"){_,_->p.edit().putBoolean("warnDismiss",true).apply()}.show()}
+ private fun render(){val bg=if(dark)Color.BLACK else Color.rgb(246,248,250);val fg=if(dark)Color.WHITE else Color.DKGRAY;val muted=if(dark)Color.LTGRAY else Color.GRAY;window.statusBarColor=bg;window.navigationBarColor=bg
+ val root=LinearLayout(this).apply{orientation=0;setPadding(dp(10),dp(8),dp(10),dp(8));setBackgroundColor(bg)};val left=LinearLayout(this).apply{orientation=1;setPadding(dp(4),0,dp(8),0)};val right=LinearLayout(this).apply{orientation=1;setPadding(dp(7),dp(7),dp(7),dp(7));background=shape(bg,12,Color.DKGRAY)}
+ root.addView(left,LinearLayout.LayoutParams(0,-1,2f));root.addView(right,LinearLayout.LayoutParams(0,-1,1f).apply{leftMargin=dp(4)});left.addView(txt("Mashing Pedals",22,fg,true));left.addView(txt(module+" module",12,muted,false).apply{setPadding(0,dp(3),0,dp(8))})
+ val body=LinearLayout(this).apply{orientation=1};val sc=ScrollView(this);sc.addView(body);left.addView(sc,LinearLayout.LayoutParams(-1,0,1f))
+ when(module){"Ride"->{body.addView(txt("GPS cycling computer",20,fg,true));body.addView(txt("Speed: "+(speed?.let{String.format("%.1f km/h",it)}?:"Unavailable"),16,muted,false));body.addView(txt("Distance: "+String.format("%.2f km",distance),16,muted,false));body.addView(txt("Active time: "+time(secs),16,muted,false));val r=LinearLayout(this).apply{orientation=0};btn(r,"Pause"){speed=0.0;prev=null;render()};btn(r,"Reset"){resetConfirm()};body.addView(r)}
+ "Settings"->{body.addView(txt("Settings",20,fg,true));btn(body,"Ride computer settings"){settings()};btn(body,"Scan Bluetooth heart-rate device"){scan()};btn(body,"Saved trip history"){history()}}
+ "Health"->body.addView(txt("Heart rate: "+(heart?.toString()?.plus(" bpm")?:"Unavailable")+"\nCadence: unavailable\nGear S3 compatibility depends on standard BLE service support.",16,muted,false))
+ "Maps"->body.addView(txt("GPS feeds the ride computer. Embedded maps are planned for a later phase.",16,muted,false))
+ "Music"->body.addView(txt("Music integration is planned for a later phase.",16,muted,false))}
+ val nav=LinearLayout(this).apply{orientation=0};listOf(Triple("Ride","◉",Color.CYAN),Triple("Maps","⌖",Color.BLUE),Triple("Music","♫",Color.MAGENTA),Triple("Health","♥",Color.RED),Triple("Settings","⚙",Color.YELLOW)).forEach{itx->val q=TextView(this).apply{text=itx.second;textSize=22f;gravity=Gravity.CENTER;setTextColor(itx.third);contentDescription="Open "+itx.first+" module";background=shape(if(module==itx.first)itx.third else bg,8,Color.DKGRAY);setOnClickListener{module=itx.first;render()}};nav.addView(q,LinearLayout.LayoutParams(0,dp(44),1f).apply{if(nav.childCount>0)leftMargin=dp(4)})};left.addView(nav,LinearLayout.LayoutParams(-1,-2).apply{topMargin=dp(8)})
+ val tools=LinearLayout(this).apply{orientation=0};icon(tools,"↻","Trip actions",accent){tripActions()};icon(tools,"▥","Global statistics",Color.CYAN){globals()};icon(tools,"⚙","Settings",Color.YELLOW){settings()};right.addView(tools,LinearLayout.LayoutParams(-1,dp(38)));right.addView(txt("RIDE COMPUTER",11,fg,true))
+ val all=listOf(Triple("SPEED","section.speed",listOf(Triple("Current","speed.current",speed?.let{String.format("%.1f",it)+" km/h"}?:"—"),Triple("Max","speed.max",if(speedN>0)String.format("%.1f km/h",maxSpeed)else"—"),Triple("Avg","speed.avg",if(speedN>0)String.format("%.1f km/h",speedSum/speedN)else"—"))),Triple("TRIP","section.trip",listOf(Triple("Time","trip.time",time(secs)),Triple("Distance","trip.distance",String.format("%.2f km",distance)))),Triple("HEART RATE","section.heart",listOf(Triple("Current","heart.current",heart?.let{"$it bpm"}?:"—"),Triple("Max","heart.max",maxHeart?.let{"$it bpm"}?:"—"),Triple("Avg","heart.avg",if(heartN>0)(heartSum/heartN).toString()+" bpm"else"—"))),Triple("CADENCE","section.cadence",listOf(Triple("Current","cadence.current",cadence?.let{"$it rpm"}?:"—"),Triple("Max","cadence.max",maxCadence?.let{"$it rpm"}?:"—"),Triple("Avg","cadence.avg",if(cadenceN>0)(cadenceSum/cadenceN).toString()+" rpm"else"—"))))
+ val rows=all.map{it.first to it.third.filter{m->v[m.second]==true}}.filter{pair->v[when(pair.first){"SPEED"->"section.speed";"TRIP"->"section.trip";"HEART RATE"->"section.heart";else->"section.cadence"}]==true&&pair.second.isNotEmpty()}
+ if(rows.isEmpty())right.addView(txt("No metrics visible. Open settings.",12,muted,false))
+ rows.forEachIndexed{idx,pair->val block=LinearLayout(this).apply{orientation=1;setPadding(dp(4),dp(4),dp(4),dp(4));background=shape(if(dark)Color.rgb(7,7,7)else Color.WHITE,7,Color.DKGRAY)};block.addView(txt(pair.first,10,accent,true));val line=LinearLayout(this).apply{orientation=0;gravity=Gravity.CENTER};pair.second.forEach{m->val cell=LinearLayout(this).apply{orientation=1;gravity=Gravity.CENTER};cell.addView(txt(m.first.uppercase(),8,muted,true));cell.addView(txt(m.third,11,fg,true).apply{gravity=Gravity.CENTER;maxLines=2});line.addView(cell,LinearLayout.LayoutParams(0,-1,1f))};block.addView(line,LinearLayout.LayoutParams(-1,0,1f));right.addView(block,LinearLayout.LayoutParams(-1,0,1f).apply{if(idx>0)topMargin=dp(4)})}
+ setContentView(root)}
+ private fun settings(){val draft=v.toMutableMap();val body=LinearLayout(this).apply{orientation=1;setPadding(dp(14),dp(8),dp(14),dp(8))};val sc=ScrollView(this);sc.addView(body)
+ fun toggle(k:String,label:String){val c=CheckBox(this).apply{text=label;isChecked=draft[k]==true};c.setOnCheckedChangeListener{_,x->draft[k]=x};body.addView(c)}
+ toggle("section.speed","Speed section");toggle("speed.current","  Current speed");toggle("speed.max","  Max speed");toggle("speed.avg","  Average speed");toggle("section.trip","Trip section");toggle("trip.time","  Trip time");toggle("trip.distance","  Trip distance");toggle("section.heart","Heart-rate section");toggle("heart.current","  Current heart rate");toggle("heart.max","  Max heart rate");toggle("heart.avg","  Average heart rate");toggle("section.cadence","Cadence section");toggle("cadence.current","  Current cadence");toggle("cadence.max","  Max cadence");toggle("cadence.avg","  Average cadence")
+ body.addView(txt("Heart-rate source: standard BLE; Gear S3 support must be verified.",12,Color.DKGRAY,false));btn(body,"Scan Bluetooth heart-rate device"){scan()};body.addView(txt("Cadence is unavailable until a sensor is added.",12,Color.DKGRAY,false));body.addView(txt("Accent hex color",12,Color.DKGRAY,true));val hex=EditText(this).apply{setSingleLine(true);setText(String.format("#%06X",0xFFFFFF and accent))};body.addView(hex);val colors=LinearLayout(this).apply{orientation=0};listOf(Color.CYAN,Color.BLUE,Color.MAGENTA,Color.YELLOW,Color.WHITE).forEach{x->val q=TextView(this).apply{text="●";textSize=24f;gravity=Gravity.CENTER;setTextColor(x);setOnClickListener{hex.setText(String.format("#%06X",0xFFFFFF and x))}};colors.addView(q,LinearLayout.LayoutParams(0,dp(38),1f))};body.addView(colors)
+ AlertDialog.Builder(this,dt()).setTitle("Ride computer settings").setView(sc).setPositiveButton("Save"){_,_->v.clear();v.putAll(draft);try{accent=Color.parseColor(hex.text.toString().trim())}catch(_:Exception){};val e=p.edit().putBoolean("dark",dark).putInt("accent",accent);v.forEach{(k,x)->e.putBoolean(k,x)};e.apply();render()}.setNegativeButton("Cancel"){_,_->render()}.show()}
+ private fun tripActions(){AlertDialog.Builder(this,dt()).setTitle("Trip actions").setItems(arrayOf("Save Trip","Delete Trip","Cancel")){_,i->when(i){0->{db.saveTrip(distance,secs,maxSpeed,if(speedN>0)speedSum/speedN else null,maxHeart,if(heartN>0)heartSum.toDouble()/heartN else null,maxCadence,if(cadenceN>0)cadenceSum.toDouble()/cadenceN else null);resetTrip()};1->resetTrip();else->{}};render()}.show()}
+ private fun resetTrip(){distance=0.0;secs=0;maxSpeed=0.0;speedSum=0.0;speedN=0;heart=null;maxHeart=null;heartSum=0;heartN=0;cadence=null;maxCadence=null;cadenceSum=0;cadenceN=0;speed=null;prev=null;saveData()}
+ private fun globals(){val msg="Total distance: "+String.format("%.2f km",gd)+"\nActive time: "+time(gs)+"\nAverage speed: "+(if(gn>0)String.format("%.1f km/h",gsum/gn)else"—")+"\nMax speed: "+String.format("%.1f km/h",gmax)+"\nMax heart rate: "+(ghmax?.let{"$it bpm"}?:"—")+"\nAverage heart rate: "+(if(ghn>0)(ghs/ghn).toString()+" bpm"else"—");AlertDialog.Builder(this,dt()).setTitle("Global statistics").setMessage(msg).setPositiveButton("Close",null).show()}
+ private fun resetConfirm(){AlertDialog.Builder(this,dt()).setTitle("Reset active trip?").setMessage("Saved history and global totals are retained.").setNegativeButton("Cancel",null).setPositiveButton("Reset"){_,_->resetTrip();render()}.show()}
+ private fun history(){val trips=db.listTrips();val msg=if(trips.isEmpty())"No saved trips."else trips.joinToString("\n\n"){it.date+"\n"+String.format("%.2f km",it.distance)+" · "+time(it.seconds)+" · max "+String.format("%.1f km/h",it.maxSpeed)};AlertDialog.Builder(this,dt()).setTitle("Saved trips").setMessage(msg).setPositiveButton("Close",null).show()}
+ private fun scan(){if(Build.VERSION.SDK_INT>=31&&checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN)!=PackageManager.PERMISSION_GRANTED){requestPermissions(arrayOf(Manifest.permission.BLUETOOTH_SCAN,Manifest.permission.BLUETOOTH_CONNECT),31);Toast.makeText(this,"Grant Bluetooth permission and scan again.",Toast.LENGTH_LONG).show();return};val a=BluetoothAdapter.getDefaultAdapter();if(a==null||!a.isEnabled){Toast.makeText(this,"Turn Bluetooth on first.",Toast.LENGTH_LONG).show();return};val scanner=a.bluetoothLeScanner?:return;val found=linkedMapOf<String,BluetoothDevice>();val cb=object:ScanCallback(){override fun onScanResult(t:Int,r:ScanResult){found[r.device.address]=r.device;runOnUiThread{val ds=found.values.toList();AlertDialog.Builder(this@MainActivity,dt()).setTitle("BLE heart-rate devices").setItems(ds.map{try{(it.name?:"Bluetooth device")+" · "+it.address}catch(_:Exception){"Bluetooth device"}}.toTypedArray()){_,i->connect(ds[i])}.setNegativeButton("Keep scanning",null).show();try{scanner.stopScan(this)}catch(_:Exception){}}};override fun onScanFailed(e:Int){runOnUiThread{Toast.makeText(this@MainActivity,"Scan failed: "+e,Toast.LENGTH_LONG).show()}}};try{scanner.startScan(listOf(ScanFilter.Builder().setServiceUuid(android.os.ParcelUuid(svc)).build()),ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build(),cb);Toast.makeText(this,"Scanning for standard BLE heart-rate devices.",Toast.LENGTH_LONG).show();h.postDelayed({try{scanner.stopScan(cb)}catch(_:Exception){}},12000)}catch(_:SecurityException){Toast.makeText(this,"Bluetooth permission required.",Toast.LENGTH_LONG).show()}}
+ @SuppressLint("MissingPermission") private fun connect(d:BluetoothDevice){try{gatt?.close();gatt=d.connectGatt(this,false,object:BluetoothGattCallback(){override fun onConnectionStateChange(g:BluetoothGatt,s:Int,state:Int){if(state==BluetoothProfile.STATE_CONNECTED)g.discoverServices()else if(state==BluetoothProfile.STATE_DISCONNECTED)runOnUiThread{heart=null;render()}};override fun onServicesDiscovered(g:BluetoothGatt,s:Int){val c=g.getService(svc)?.getCharacteristic(hrid);if(c==null){runOnUiThread{Toast.makeText(this@MainActivity,"Device lacks standard heart-rate measurement.",Toast.LENGTH_LONG).show()};return};g.setCharacteristicNotification(c,true);val dsc=c.getDescriptor(cccd);if(dsc!=null){if(Build.VERSION.SDK_INT>=33)g.writeDescriptor(dsc,BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)else{@Suppress("DEPRECATION") dsc.value=BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE;@Suppress("DEPRECATION") g.writeDescriptor(dsc)}}};@Deprecated("Deprecated in Java") override fun onCharacteristicChanged(g:BluetoothGatt,c:BluetoothGattCharacteristic){got(c.value)};override fun onCharacteristicChanged(g:BluetoothGatt,c:BluetoothGattCharacteristic,b:ByteArray){got(b)};private fun got(b:ByteArray?){if(b==null||b.size<2)return;val n=if((b[0].toInt() and 1)!=0&&b.size>=3)(b[1].toInt() and 255)or((b[2].toInt() and 255)shl 8)else b[1].toInt() and 255;runOnUiThread{heart=n;if((speed?:0.0)>0){maxHeart=max(maxHeart?:n,n);heartSum+=n;heartN++;ghmax=max(ghmax?:n,n);ghs+=n;ghn++};saveData();render()}}})}catch(_:SecurityException){Toast.makeText(this,"Bluetooth permission required.",Toast.LENGTH_LONG).show()}}
+ private fun icon(p:LinearLayout,g:String,label:String,c:Int,a:()->Unit){val q=TextView(this).apply{text=g;textSize=21f;gravity=Gravity.CENTER;setTextColor(c);contentDescription=label;background=shape(if(dark)Color.rgb(20,20,20)else Color.WHITE,8,Color.DKGRAY);setOnClickListener{a()}};p.addView(q,LinearLayout.LayoutParams(0,dp(38),1f).apply{if(p.childCount>0)leftMargin=dp(4)})}
+ private fun btn(p:LinearLayout,s:String,a:()->Unit){p.addView(Button(this).apply{text=s;textSize=11f;setOnClickListener{a()}},LinearLayout.LayoutParams(0,-2,1f).apply{rightMargin=dp(3)})}
+ private fun txt(s:String,n:Int,c:Int,b:Boolean)=TextView(this).apply{text=s;textSize=n.toFloat();setTextColor(c);if(b)setTypeface(typeface,Typeface.BOLD)}
+ private fun shape(c:Int,r:Int,b:Int)=GradientDrawable().apply{setColor(c);cornerRadius=dp(r).toFloat();setStroke(dp(1),b)}
+ private fun dt()=if(dark)android.R.style.Theme_Material_Dialog_Alert else android.R.style.Theme_Material_Light_Dialog_Alert
+ private fun dp(n:Int)=(n*resources.displayMetrics.density).toInt()
+ private fun time(s:Long)=String.format("%02d:%02d:%02d",s/3600,(s%3600)/60,s%60)
 }
