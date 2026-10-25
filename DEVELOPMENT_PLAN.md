@@ -32,6 +32,32 @@ The app's own cycling-computer layer remains visible while the user switches bet
 - **Music:** first investigate Android media-session integration with Pulsar. Evaluate Spotify's supported SDK/integration path separately; do not assume either app's complete native UI can be embedded.
 - **Health:** investigate Samsung Health and/or Health Connect based on current supported APIs, permissions, approval requirements, and whether data is available during an active ride. Do not present historical measurements as live readings.
 
+### Ride metrics, source selection, and trip accounting
+
+**Approved requirements (2026-10-25):**
+
+- The ride computer has four configurable sections: Speed (current, max, average), Trip (active time, distance), Heart Rate (current, max, average), and Cadence (current, max, average). Each section and each individual data point can be shown or hidden.
+- Divide the ride-computer area equally among sections that contain visible data points; divide each section's area equally among its visible points. Reflow dynamically when visibility changes. If no data points are visible, show a clear empty-state/settings affordance.
+- A settings gear opens an overlay confined to the ride-computer panel. It provides section/point visibility, per-metric source selection, and accent-color selection using both a color wheel and editable hex value. Save applies/persists changes; Cancel discards pending edits. Use the currently selected theme, including true AMOLED black, as appropriate.
+- The trip-control icon opens an overlay with exactly three actions: **Save Trip**, **Delete Trip**, and **Cancel**. Cancel performs no action. Save Trip persists a completed-trip record and then resets active data points according to the matrix below. Delete Trip creates no history record for the current trip and resets active data points according to the matrix. Neither action deletes previously saved trip records or global totals.
+- Trip action matrix:
+  - Current speed: reset for Save Trip and Delete Trip.
+  - Speed max and speed average: Save Trip records then resets; Delete Trip resets without recording.
+  - Trip time and trip distance: Save Trip records then resets; Delete Trip resets without recording.
+  - Current heart rate: reset for either Save Trip or Delete Trip.
+  - Heart-rate max and average: Save Trip records then resets; Delete Trip resets without recording.
+  - Current cadence: reset for either Save Trip or Delete Trip.
+  - Cadence max and average: Save Trip records then resets; Delete Trip resets without recording.
+  - Cancel: no changes.
+- A global-statistics icon sits between the trip-control and settings icons. Its overlay shows cumulative distance, active riding time, average speed, maximum speed, maximum heart rate, and average heart rate. Global totals are independent of trip saves/deletes and persist in local storage.
+- A ride is considered actively tracking only while current speed is greater than zero; otherwise it is paused. Paused duration must not add to active trip/global time. During paused time, do not update speed average, trip time, heart-rate max/average, cadence average, global time, global average speed, global maximum heart rate, or global average heart rate. Where a metric/source is unavailable, store it as unavailable/null and exclude it from calculations requiring that metric rather than treating it as zero.
+- Supported source categories must be extensible and include: phone GPS / Mashing Pedals map location; compatible Bluetooth sensors and cycling computers; Samsung Health and Health Connect; Google Fit where a supported integration remains available; Samsung wearables on Tizen and Wear OS; Polar heart-rate monitors and watches; and Garmin GPS devices. These are integration targets, not a claim that every device/API is currently supported. Verify current official API, permissions, licensing, authorization, device compatibility, and background restrictions before implementing each adapter.
+- Speed, distance, and heart rate can each be assigned independently to a source that currently supports that metric. The source dropdown is populated dynamically from connected/available sources and filters out sources that cannot provide the selected metric. Keep source adapters modular so future integrations can be added without changing trip calculations.
+- Use an internal source by default where the app itself can provide the metric (for example, phone GPS for speed/distance). Heart rate and cadence have no assumed phone-native sensor. If a required metric has no available source when the app opens, show a warning overlay identifying the missing metric and offering access to source settings. Do not fabricate values. A future enhancement should attempt to reconnect to previously selected sources on launch and only warn if the selected source is unavailable and no usable internal fallback exists.
+- If no usable source supplies a metric, that metric must not affect averages or aggregate calculations that depend on it. Clearly distinguish unavailable data from a measured zero.
+- Replace text module-navigation buttons with suitable colored Material-style icons, preserving accessible labels/content descriptions.
+- Recommended persistence: Room/SQLite for completed trip records and global aggregates, with a versioned schema that can support later analytics; a lightweight preference store for theme, accent, visibility, layout, and source selections. Analytics UI remains deferred until the currently planned functionality is complete.
+
 ### Constraints and exclusions
 
 - Target: Android, with the Samsung Galaxy A15 5G as the initial device for user testing.
@@ -232,6 +258,9 @@ These are investigation items, not confirmed blockers or implemented features:
 - **MP-DEC-002 — Persistent dashboard and switchable modules:** The cycling-computer data area remains static/persistent and customizable while the user switches among modules inside this app. This does not imply overlaying the dashboard over arbitrary third-party apps.
 - **MP-DEC-003 — Voice-activated controls:** Actions such as ride start/stop/pause/reset and supported music controls must be voice-activated. Support and success feedback depend on what the platform/player actually permits.
 - **MP-DEC-004 — Initial device/network constraint:** The initial target is the Samsung Galaxy A15 5G; the phone is Wi-Fi-only, so offline-capable core behavior is prioritized where feasible.
+- **MP-DEC-005 — Configurable metric sources:** Each supported metric may use a compatible connected source selected from a dynamic, metric-aware list. Source integrations remain modular and are implemented only after current API and device support is verified. Internal phone sources are defaults only where they can actually provide the metric; missing HR/cadence sources must be represented as unavailable, not zero.
+- **MP-DEC-006 — Trip and global accounting:** Save Trip creates a local historical trip record for designated metrics and resets the active trip according to the approved action matrix. Delete Trip resets the active trip without recording it. Cancel does nothing. Both preserve prior history and independent global totals. Paused time is excluded from active-time and designated averages/maxima; unavailable data is excluded from calculations that require it.
+- **MP-DEC-007 — Extensible source integration targets:** Bluetooth cycling sensors/computers, Samsung Health/Health Connect, Google Fit where supported, Samsung Tizen and Wear OS devices, Polar heart-rate monitors/watches, and Garmin GPS devices are requested integration targets. This records desired compatibility, not verified availability or a promise that every product can be integrated through an official API.
 
 These decisions reflect the approved plan as of 2026-10-25. Future changes should update the current requirements and preserve superseded decisions rather than silently erasing them.
 
