@@ -1,6 +1,6 @@
 # Mashing Pedals — Development Plan
 
-**Status:** Approved plan; implementation has not started  
+**Status:** Phase 1 implementation and UI refinement are in progress; device acceptance testing remains pending  
 **Plan baseline:** 2026-10-25  
 **Repository:** https://github.com/pistolwhip-justin/Mashing-Pedals  
 **Global development standard:** [Development Protocols](https://github.com/pistolwhip-justin/development-protocols-n-assets/blob/main/DEVELOPMENT_PROTOCOLS.md) (v1.1.1 at plan approval)
@@ -265,3 +265,16 @@ These selections may be changed by the user later. A change that adds infrastruc
 - **Device acceptance checks:** install on Samsung Galaxy A15 5G; confirm module navigation; change theme/layout/metric visibility; force-close/reopen and confirm settings persist; verify placeholders are not presented as real data; try module commands and an unsupported ride command; report UI/UX issues as testing feedback.
 - **Verification status:** source is committed; GitHub Actions automated tests passed and `assembleDebug` succeeded on commit `4e03cb77d30f06e3b7dc191897ba3f7d392e4e39`; immutable GitHub Release `v0.1.0` was published with the `Mashing-Pedals-0.1.0.apk` asset. Physical-device installation and behavior are not yet verified.
 - **Signing caveat:** CI currently uses its ephemeral Android debug-signing key. Stable signing across phase releases is not configured; later APKs may require uninstalling the previous build before installing the next, which deletes local app data. A persistent test keystore supplied securely through GitHub Actions secrets would be needed for seamless in-place upgrades.
+
+
+## 11. Phase 1 UI revision — 0.1.1
+
+**User-approved design requirements (2026-10-25):**
+- Force the app into landscape orientation.
+- Use a split-screen layout: the module workspace occupies the left two thirds and the persistent ride computer occupies the right third.
+- Keep module selection buttons in a single horizontal row at the bottom of the left workspace, beneath the module content area.
+- Make the dark theme true AMOLED black (#000000) for the main background and dashboard surface, using subtle dark-gray card fills and borders for separation.
+
+**Release:** v0.1.1, APK asset Mashing-Pedals-0.1.1.apk, with a dedicated version-matched GitHub Actions workflow. This is a UI/layout refinement only; live GPS, ride execution, wake phrase, and Maps/Music/Health integrations remain out of scope for Phase 1.
+
+**Device acceptance:** Install the new APK on the Galaxy A15 5G; confirm landscape-only behavior, the left 2/3 and right 1/3 split, bottom horizontal module selector, AMOLED-black appearance, module switching, and settings persistence. The previous release uses a different debug-signing key, so Android may require uninstalling it first; uninstalling clears app data.
