@@ -15,7 +15,7 @@ class DashboardSettingsStoreTest {
         assertEquals(expected,DashboardSettingsStore(prefs).load())
     }
     @Test fun defaultsAreDarkCardsWithAllMetricsVisible() {
-        val prefs=RuntimeEnvironment.getApplication<Application>().getSharedPreferences("defaults-test",0)
+        val prefs=RuntimeEnvironment.getApplication().getSharedPreferences("defaults-test",0)
         prefs.edit().clear().commit()
         assertEquals(DashboardSettings(),DashboardSettingsStore(prefs).load())
     }
