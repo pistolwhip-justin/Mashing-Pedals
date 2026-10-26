@@ -66,11 +66,74 @@ class MainActivity:Activity(){
  if(rows.isEmpty())right.addView(txt("No metrics visible. Open settings.",12,muted,false))
  rows.forEachIndexed{idx,pair->val block=LinearLayout(this).apply{orientation=1;setPadding(dp(4),dp(4),dp(4),dp(4))};block.addView(txt(pair.first,10,accent,true));val line=LinearLayout(this).apply{orientation=0;gravity=Gravity.CENTER};pair.second.forEach{m->val cell=LinearLayout(this).apply{orientation=1;gravity=Gravity.CENTER};cell.addView(txt(m.first.uppercase(),8,muted,true));cell.addView(txt(m.third,if(compact)9 else 11,fg,true).apply{gravity=Gravity.CENTER;maxLines=2});line.addView(cell,LinearLayout.LayoutParams(0,-1,1f))};block.addView(line,LinearLayout.LayoutParams(-1,0,1f));right.addView(block,LinearLayout.LayoutParams(-1,0,1f).apply{if(idx>0)topMargin=dp(4)})}
  setContentView(root)}
- private fun settings(){val draft=v.toMutableMap();val body=LinearLayout(this).apply{orientation=1;setPadding(dp(14),dp(8),dp(14),dp(8))};val sc=ScrollView(this);sc.addView(body);val light=CheckBox(this).apply{text="Use light theme";isChecked=!dark};body.addView(light);val compactToggle=CheckBox(this).apply{text="Compact metric values";isChecked=compact};body.addView(compactToggle)
- fun toggle(k:String,label:String){val c=CheckBox(this).apply{text=label;isChecked=draft[k]==true};c.setOnCheckedChangeListener{_,x->draft[k]=x};body.addView(c)}
- toggle("section.speed","Speed section");toggle("speed.current","  Current speed");toggle("speed.max","  Max speed");toggle("speed.avg","  Average speed");toggle("section.trip","Trip section");toggle("trip.time","  Trip time");toggle("trip.distance","  Trip distance");toggle("section.heart","Heart-rate section");toggle("heart.current","  Current heart rate");toggle("heart.max","  Max heart rate");toggle("heart.avg","  Average heart rate");toggle("section.cadence","Cadence section");toggle("cadence.current","  Current cadence");toggle("cadence.max","  Max cadence");toggle("cadence.avg","  Average cadence")
- body.addView(txt("Heart-rate source: standard BLE; Gear S3 support must be verified.",12,Color.DKGRAY,false));btn(body,"Scan Bluetooth heart-rate device"){scan()};body.addView(txt("Cadence is unavailable until a sensor is added.",12,Color.DKGRAY,false));body.addView(txt("Accent hex color",12,Color.DKGRAY,true));val hex=EditText(this).apply{setSingleLine(true);setText(String.format("#%06X",0xFFFFFF and accent))};body.addView(hex);body.addView(ColorWheelView(this){c->hex.setText(String.format("#%06X",0xFFFFFF and c))},LinearLayout.LayoutParams(-1,dp(132)));val colors=LinearLayout(this).apply{orientation=0};listOf(Color.CYAN,Color.BLUE,Color.MAGENTA,Color.YELLOW,Color.WHITE).forEach{x->val q=TextView(this).apply{text="●";textSize=24f;gravity=Gravity.CENTER;setTextColor(x);setOnClickListener{hex.setText(String.format("#%06X",0xFFFFFF and x))}};colors.addView(q,LinearLayout.LayoutParams(0,dp(38),1f))};body.addView(colors)
- AlertDialog.Builder(this,dt()).setTitle("Ride computer settings").setView(sc).setPositiveButton("Save"){_,_->v.clear();v.putAll(draft);dark=!light.isChecked;compact=compactToggle.isChecked;try{accent=Color.parseColor(hex.text.toString().trim())}catch(_:Exception){};val e=p.edit().putBoolean("dark",dark).putBoolean("compact",compact).putInt("accent",accent);v.forEach{(k,x)->e.putBoolean(k,x)};e.apply();render()}.setNegativeButton("Cancel"){_,_->render()}.show()}
+ private fun settings(){
+  val draft=v.toMutableMap()
+  val root=LinearLayout(this).apply{orientation=1}
+  val tabs=LinearLayout(this).apply{orientation=0;gravity=Gravity.CENTER}
+  val pages=mutableListOf<LinearLayout>()
+  fun page():LinearLayout=LinearLayout(this).apply{orientation=1;setPadding(dp(8),dp(6),dp(8),dp(6))}
+  val measure=page();val connect=page();val style=page()
+  pages.add(measure);pages.add(connect);pages.add(style)
+  fun toggle(host:LinearLayout,k:String,label:String){val q=CheckBox(this).apply{text=label;isChecked=draft[k]==true};q.setOnCheckedChangeListener{_,checked->draft[k]=checked};host.addView(q)}
+  toggle(measure,"section.speed","Speed section");toggle(measure,"speed.current","Current speed");toggle(measure,"speed.max","Max speed");toggle(measure,"speed.avg","Average speed")
+  toggle(measure,"section.trip","Trip section");toggle(measure,"trip.time","Trip time");toggle(measure,"trip.distance","Trip distance")
+  toggle(measure,"section.heart","Heart-rate section");toggle(measure,"heart.current","Current heart rate");toggle(measure,"heart.max","Max heart rate");toggle(measure,"heart.avg","Average heart rate")
+  toggle(measure,"section.cadence","Cadence section");toggle(measure,"cadence.current","Current cadence");toggle(measure,"cadence.max","Max cadence");toggle(measure,"cadence.avg","Average cadence")
+  connect.addView(txt("Speed and distance source",13,if(dark)Color.WHITE else Color.DKGRAY,true))
+  connect.addView(txt("Phone GPS (internal source)",12,if(dark)Color.LTGRAY else Color.DKGRAY,false))
+  connect.addView(txt("Heart-rate source",13,if(dark)Color.WHITE else Color.DKGRAY,true))
+  connect.addView(txt("Gear S3 via Bluetooth LE, if the watch exposes the standard Heart Rate Service.",12,if(dark)Color.LTGRAY else Color.DKGRAY,false))
+  btn(connect,"Scan Bluetooth heart-rate device"){scan()}
+  connect.addView(txt("Cadence source",13,if(dark)Color.WHITE else Color.DKGRAY,true))
+  connect.addView(txt("Unavailable — no cadence sensor configured.",12,if(dark)Color.LTGRAY else Color.DKGRAY,false))
+  val light=CheckBox(this).apply{text="Use light theme";isChecked=!dark};style.addView(light)
+  val compactToggle=CheckBox(this).apply{text="Compact metric values";isChecked=compact};style.addView(compactToggle)
+  style.addView(txt("Accent color",13,if(dark)Color.WHITE else Color.DKGRAY,true))
+  val hex=EditText(this).apply{setSingleLine(true);setText(String.format("#%06X",0xFFFFFF and accent));hint="#RRGGBB"}
+  val preview=View(this).apply{background=GradientDrawable().apply{setColor(accent);cornerRadius=dp(6).toFloat();setStroke(dp(1),Color.GRAY)}}
+  val wheelRow=LinearLayout(this).apply{orientation=0;gravity=Gravity.CENTER_VERTICAL}
+  val wheel=ColorWheelView(this){color->hex.setText(String.format("#%06X",0xFFFFFF and color));preview.background=GradientDrawable().apply{setColor(color);cornerRadius=dp(6).toFloat();setStroke(dp(1),Color.GRAY)}}
+  wheelRow.addView(wheel,LinearLayout.LayoutParams(0,dp(128),1f))
+  val previewCol=LinearLayout(this).apply{orientation=1;gravity=Gravity.CENTER}
+  previewCol.addView(txt("Selected",11,if(dark)Color.WHITE else Color.DKGRAY,true))
+  previewCol.addView(preview,LinearLayout.LayoutParams(dp(54),dp(54)).apply{topMargin=dp(5)})
+  wheelRow.addView(previewCol,LinearLayout.LayoutParams(dp(78),dp(128)))
+  style.addView(wheelRow)
+  style.addView(hex)
+  val swatches=LinearLayout(this).apply{orientation=0}
+  listOf(Color.CYAN,Color.BLUE,Color.MAGENTA,Color.YELLOW,Color.WHITE).forEach{color->
+   val swatch=TextView(this).apply{text="●";textSize=24f;gravity=Gravity.CENTER;setTextColor(color);setOnClickListener{hex.setText(String.format("#%06X",0xFFFFFF and color));preview.background=GradientDrawable().apply{setColor(color);cornerRadius=dp(6).toFloat();setStroke(dp(1),Color.GRAY)}}}
+   swatches.addView(swatch,LinearLayout.LayoutParams(0,dp(36),1f))
+  };style.addView(swatches)
+  fun showPage(index:Int){pages.forEachIndexed{i,p->p.visibility=if(i==index)View.VISIBLE else View.GONE};for(i in 0 until tabs.childCount){val t=tabs.getChildAt(i) as TextView;t.setTextColor(if(i==index)accent else if(dark)Color.LTGRAY else Color.DKGRAY)}}
+  listOf("Measure","Connect","Style").forEachIndexed{i,label->val tab=TextView(this).apply{text=label;gravity=Gravity.CENTER;textSize=13f;setPadding(dp(5),dp(10),dp(5),dp(10));setOnClickListener{showPage(i)}};tabs.addView(tab,LinearLayout.LayoutParams(0,dp(40),1f))}
+  root.addView(tabs)
+  pages.forEach{root.addView(it,LinearLayout.LayoutParams(-1,0,1f))}
+  showPage(0)
+  ridePanel("Ride computer settings",root,listOf(
+   "Cancel" to {render()},
+   "Save" to {
+    v.clear();v.putAll(draft);dark=!light.isChecked;compact=compactToggle.isChecked
+    try{accent=Color.parseColor(hex.text.toString().trim())}catch(_:Exception){}
+    val e=p.edit().putBoolean("dark",dark).putBoolean("compact",compact).putInt("accent",accent)
+    v.forEach{(k,x)->e.putBoolean(k,x)};e.apply();render()
+   }
+  ))
+ }
+ private fun ridePanel(title:String,body:View,actions:List<Pair<String,()->Unit>>){
+  val dialog=android.app.Dialog(this)
+  val panel=LinearLayout(this).apply{orientation=1;setPadding(dp(10),dp(8),dp(10),dp(8));setBackgroundColor(if(dark)Color.BLACK else Color.rgb(246,248,250))}
+  panel.addView(txt(title,17,if(dark)Color.WHITE else Color.DKGRAY,true))
+  val sc=ScrollView(this);sc.addView(body);panel.addView(sc,LinearLayout.LayoutParams(-1,0,1f).apply{topMargin=dp(6)})
+  val footer=LinearLayout(this).apply{orientation=0;gravity=Gravity.CENTER}
+  actions.forEach{(label,action)->val button=TextView(this).apply{text=label;gravity=Gravity.CENTER;textSize=12f;setTextColor(accent);setPadding(dp(3),dp(10),dp(3),dp(10));setOnClickListener{action();dialog.dismiss()}};footer.addView(button,LinearLayout.LayoutParams(0,dp(42),1f))}
+  panel.addView(footer)
+  dialog.setContentView(panel)
+  dialog.setCancelable(false)
+  dialog.show()
+  val win=dialog.window
+  if(win!=null){win.setBackgroundDrawableResource(android.R.color.transparent);win.clearFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);val width=(resources.displayMetrics.widthPixels*0.34f).toInt();win.setLayout(width,android.view.WindowManager.LayoutParams.MATCH_PARENT);win.setGravity(Gravity.RIGHT);val lp=win.attributes;lp.x=dp(10);lp.y=0;win.attributes=lp}
+ }
  private fun tripActions(){AlertDialog.Builder(this,dt()).setTitle("Trip actions").setItems(arrayOf("Save Trip","Delete Trip","Cancel")){_,i->when(i){0->{db.saveTrip(distance,secs,maxSpeed,if(speedN>0)speedSum/speedN else null,maxHeart,if(heartN>0)heartSum.toDouble()/heartN else null,maxCadence,if(cadenceN>0)cadenceSum.toDouble()/cadenceN else null);resetTrip()};1->resetTrip();else->{}};render()}.show()}
  private fun resetTrip(){distance=0.0;secs=0;maxSpeed=0.0;speedSum=0.0;speedN=0;heart=null;maxHeart=null;heartSum=0;heartN=0;cadence=null;maxCadence=null;cadenceSum=0;cadenceN=0;speed=null;prev=null;saveData()}
  private fun globals(){val msg="Total distance: "+String.format("%.2f km",gd)+"\nActive time: "+time(gs)+"\nAverage speed: "+(if(gn>0)String.format("%.1f km/h",gsum/gn)else"—")+"\nMax speed: "+String.format("%.1f km/h",gmax)+"\nMax heart rate: "+(ghmax?.let{"$it bpm"}?:"—")+"\nAverage heart rate: "+(if(ghn>0)(ghs/ghn).toString()+" bpm"else"—");AlertDialog.Builder(this,dt()).setTitle("Global statistics").setMessage(msg).setPositiveButton("Close",null).show()}
