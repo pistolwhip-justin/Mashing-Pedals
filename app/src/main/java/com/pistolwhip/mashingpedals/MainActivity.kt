@@ -108,7 +108,7 @@ class MainActivity:Activity(){
   fun showPage(index:Int){pages.forEachIndexed{i,p->p.visibility=if(i==index)View.VISIBLE else View.GONE};for(i in 0 until tabs.childCount){val t=tabs.getChildAt(i) as TextView;t.setTextColor(if(i==index)accent else if(dark)Color.LTGRAY else Color.DKGRAY)}}
   listOf("Measure","Connect","Style").forEachIndexed{i,label->val tab=TextView(this).apply{text=label;gravity=Gravity.CENTER;textSize=13f;setPadding(dp(5),dp(10),dp(5),dp(10));setOnClickListener{showPage(i)}};tabs.addView(tab,LinearLayout.LayoutParams(0,dp(40),1f))}
   root.addView(tabs)
-  pages.forEach{root.addView(it,LinearLayout.LayoutParams(-1,0,1f))}
+  pages.forEach{root.addView(it,LinearLayout.LayoutParams(-1,-2))}
   showPage(0)
   ridePanel("Ride computer settings",root,listOf(
    "Cancel" to {render()},
