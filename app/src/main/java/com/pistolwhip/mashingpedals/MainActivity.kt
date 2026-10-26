@@ -139,7 +139,7 @@ class MainActivity:Activity(){
   dialog.setCancelable(false)
   dialog.show()
   val win=dialog.window
-  if(win!=null){win.setBackgroundDrawableResource(android.R.color.transparent);win.clearFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);val width=((resources.displayMetrics.widthPixels-dp(24))/3).coerceAtLeast(dp(220));win.setLayout(width,android.view.WindowManager.LayoutParams.MATCH_PARENT);win.setGravity(Gravity.RIGHT);val lp=win.attributes;lp.x=dp(10);lp.y=0;win.attributes=lp}
+  if(win!=null){win.setBackgroundDrawableResource(android.R.color.transparent);win.clearFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);val width=((resources.displayMetrics.widthPixels-dp(24))/3).coerceAtLeast(dp(1));win.setLayout(width,android.view.WindowManager.LayoutParams.MATCH_PARENT);win.setGravity(Gravity.RIGHT);val lp=win.attributes;lp.x=dp(10);lp.y=0;win.attributes=lp}
  }
  private fun tripActions(){val content=LinearLayout(this).apply{orientation=1};content.addView(txt("Save Trip stores this ride in history. Delete Trip resets the active ride without saving it. Previously saved trips and global totals are retained.",13,if(dark)Color.LTGRAY else Color.DKGRAY,false));ridePanel("Trip actions",content,listOf("Save Trip" to {db.saveTrip(distance,secs,maxSpeed,if(speedN>0)speedSum/speedN else null,maxHeart,if(heartN>0)heartSum.toDouble()/heartN else null,maxCadence,if(cadenceN>0)cadenceSum.toDouble()/cadenceN else null);resetTrip();render()},"Delete Trip" to {resetTrip();render()},"Cancel" to {}))}
  private fun resetTrip(){distance=0.0;secs=0;maxSpeed=0.0;speedSum=0.0;speedN=0;heart=null;maxHeart=null;heartSum=0;heartN=0;cadence=null;maxCadence=null;cadenceSum=0;cadenceN=0;speed=null;prev=null;saveData()}
