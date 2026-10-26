@@ -344,3 +344,12 @@ These selections may be changed by the user later. A change that adds infrastruc
 - Ride settings use Measure, Connect, and Style tabs. The Style tab includes a color wheel with an adjacent selected-color preview swatch.
 - Settings, trip actions, global statistics, and source-warning overlays are rendered as right-side panels sized to the ride-computer region. This is an initial layout approximation; confirm alignment and clipping on the target device.
 - Integrations shown as module tabs are navigation placeholders unless explicitly implemented; do not represent Spotify, Pulsar, YouTube, or Samsung Health playback/data integration as complete in this patch.
+
+
+## UI refinement patch — 0.2.3 (2026-10-26)
+
+- The accent color preview sits beside the hue wheel and stays synchronized when the user selects from the wheel, chooses a preset, or edits a valid hex value.
+- Ride overlays are constrained to the right ride-computer panel width, with a right inset matching the app shell; they must not cover the left module area.
+- Remove button backgrounds, foreground ripples, and borders from the top ride controls and module navigation. Keep the ride-computer container and individual metric sections borderless.
+- Settings continue to use the Measure, Connect, and Style tabs. The left module switcher remains exactly GPS, Spotify, pulsar, YouTube, Samsung Health, and Settings; the cycling computer is not a left-side module.
+- This patch is a UI-only refinement; integration tabs remain placeholders where integrations are not implemented. Validate exact panel alignment and visual appearance on the Galaxy A15.
