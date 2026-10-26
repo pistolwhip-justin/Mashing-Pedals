@@ -353,3 +353,9 @@ These selections may be changed by the user later. A change that adds infrastruc
 - Remove button backgrounds, foreground ripples, and borders from the top ride controls and module navigation. Keep the ride-computer container and individual metric sections borderless.
 - Settings continue to use the Measure, Connect, and Style tabs. The left module switcher remains exactly GPS, Spotify, pulsar, YouTube, Samsung Health, and Settings; the cycling computer is not a left-side module.
 - This patch is a UI-only refinement; integration tabs remain placeholders where integrations are not implemented. Validate exact panel alignment and visual appearance on the Galaxy A15.
+
+
+## Patch 0.2.4 — release from final overlay-bounds source
+
+- Publish the exact latest source after tightening the ride overlay width calculation so it never exceeds the ride-computer region due to a minimum-width fallback.
+- No feature scope changes from 0.2.3; this patch ensures the immutable release APK is built from the final source revision.
