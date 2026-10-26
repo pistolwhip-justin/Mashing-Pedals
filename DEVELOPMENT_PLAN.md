@@ -335,3 +335,12 @@ These selections may be changed by the user later. A change that adds infrastruc
 - Restore the typed command test entry point in the Ride module.
 - Add a hue color wheel alongside the editable accent hex value and preset swatches.
 - Keep the trip-action and source-warning dismissal behavior from 0.2.0.
+
+
+## UI refinement patch — 0.2.2 (2026-10-26)
+
+- The left module switcher contains exactly GPS, Spotify, pulsar, YouTube, Samsung Health, and Settings; the ride computer remains in the separate right-side panel rather than appearing as a module tab.
+- Module controls, top ride-computer controls, the ride-computer container, and individual metric sections have no button backgrounds/borders or section/container borders.
+- Ride settings use Measure, Connect, and Style tabs. The Style tab includes a color wheel with an adjacent selected-color preview swatch.
+- Settings, trip actions, global statistics, and source-warning overlays are rendered as right-side panels sized to the ride-computer region. This is an initial layout approximation; confirm alignment and clipping on the target device.
+- Integrations shown as module tabs are navigation placeholders unless explicitly implemented; do not represent Spotify, Pulsar, YouTube, or Samsung Health playback/data integration as complete in this patch.
