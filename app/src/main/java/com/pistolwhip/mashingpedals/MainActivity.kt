@@ -92,13 +92,20 @@ class MainActivity:Activity(){
   val hex=EditText(this).apply{setSingleLine(true);setText(String.format("#%06X",0xFFFFFF and accent));hint="#RRGGBB"}
   val preview=View(this).apply{contentDescription="Selected accent color preview";background=GradientDrawable().apply{setColor(accent);cornerRadius=dp(4).toFloat();setStroke(dp(1),if(dark)Color.LTGRAY else Color.DKGRAY)}}
   val wheelRow=LinearLayout(this).apply{orientation=0;gravity=Gravity.CENTER_VERTICAL}
-  fun showPreview(color:Int){preview.background=GradientDrawable().apply{setColor(color);cornerRadius=dp(4).toFloat();setStroke(dp(1),if(dark)Color.LTGRAY else Color.DKGRAY)}}\n  val wheel=ColorWheelView(this){color->hex.setText(String.format("#%06X",0xFFFFFF and color));showPreview(color)}
+  fun showPreview(color:Int){preview.background=GradientDrawable().apply{setColor(color);cornerRadius=dp(4).toFloat();setStroke(dp(1),if(dark)Color.LTGRAY else Color.DKGRAY)}}
+  val wheel=ColorWheelView(this){color->hex.setText(String.format("#%06X",0xFFFFFF and color));showPreview(color)}
   wheelRow.addView(wheel,LinearLayout.LayoutParams(0,dp(128),1f))
   val previewCol=LinearLayout(this).apply{orientation=1;gravity=Gravity.CENTER}
   previewCol.addView(txt("Selected",11,if(dark)Color.WHITE else Color.DKGRAY,true))
   previewCol.addView(preview,LinearLayout.LayoutParams(dp(54),dp(54)).apply{topMargin=dp(5)})
   wheelRow.addView(previewCol,LinearLayout.LayoutParams(dp(78),dp(128)))
   style.addView(wheelRow)
+  hex.addTextChangedListener(object:android.text.TextWatcher{
+   override fun beforeTextChanged(s:CharSequence?,start:Int,count:Int,after:Int){}
+   override fun onTextChanged(s:CharSequence?,start:Int,before:Int,count:Int){try{showPreview(Color.parseColor(s.toString().trim()))}catch(_:Exception){}}
+   override fun afterTextChanged(s:android.text.Editable?){}
+  })
+  showPreview(accent)
   style.addView(hex)
   val swatches=LinearLayout(this).apply{orientation=0}
   listOf(Color.CYAN,Color.BLUE,Color.MAGENTA,Color.YELLOW,Color.WHITE).forEach{color->
